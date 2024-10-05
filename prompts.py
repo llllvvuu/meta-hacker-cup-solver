@@ -35,7 +35,7 @@ def basic_prompt(
 {interpolate_sample_in_out(statement, sample_in, sample_out)}
 # Solution
 
-<tags>
+<paraphrasing>
 """
 
 

@@ -38,7 +38,7 @@ def sample_completions(
 ) -> dict[str, list[str]]:
     from vllm import LLM, SamplingParams
     sampling_params = SamplingParams(max_tokens=max_tokens, n=n, stop="</problem>")
-    llm = LLM(model=model, max_model_len=8192, swap_space=32)
+    llm = LLM(model=model, max_model_len=8192, swap_space=32, gpu_memory_utilization=0.95)
 
     prompt_texts = [prompt for _, prompt in prompts]
     outputs = llm.generate(prompt_texts, sampling_params)
