@@ -1,8 +1,33 @@
 import argparse
 from pathlib import Path
 import subprocess
-from collections import Counter, defaultdict
 import random
+import math
+
+
+def is_close(a: str, b: str, rel_tol: float = 1e-6, abs_tol: float = 1e-6) -> bool:
+    try:
+        float_a, float_b = float(a), float(b)
+        return math.isclose(float_a, float_b, rel_tol=rel_tol, abs_tol=abs_tol)
+    except ValueError:
+        return a == b
+
+
+def compare_outputs(output1: str, output2: str) -> bool:
+    words1 = output1.split()
+    words2 = output2.split()
+
+    if len(words1) != len(words2):
+        return False
+
+    for w1, w2 in zip(words1, words2):
+        if "." in w1 or "." in w2:
+            if not is_close(w1, w2):
+                return False
+        elif w1 != w2:
+            return False
+
+    return True
 
 
 def run_cpp_solution(exe_file: Path, input_file: Path) -> str:
@@ -44,21 +69,22 @@ def vote_on_solutions(
     if not outputs:
         raise ValueError("All solutions resulted in timeout or error")
 
-    vote_results: Counter[str] = Counter(outputs.values())
-    top_votes = vote_results.most_common()
-    max_votes = top_votes[0][1]
-
-    winning_outputs = [output for output, votes in top_votes if votes == max_votes]
-
-    winning_output = random.choice(winning_outputs)
-
-    groups: defaultdict[str, list[Path]] = defaultdict(list)
+    clusters: list[list[Path]] = []
     for cpp, output in outputs.items():
-        groups[output].append(cpp)
+        for cluster in clusters:
+            if compare_outputs(output, outputs[cluster[0]]):
+                cluster.append(cpp)
+                break
+        else:
+            clusters.append([cpp])
 
-    sorted_groups = sorted(groups.items(), key=lambda x: (-len(x[1]), x[0]))
+    clusters.sort(key=len, reverse=True)
 
-    winning_cpp = random.choice(groups[winning_output])
+    winning_cluster = clusters[0]
+    winning_cpp = random.choice(winning_cluster)
+    winning_output = outputs[winning_cpp]
+
+    sorted_groups = [(outputs[cluster[0]], cluster) for cluster in clusters]
 
     return winning_output, winning_cpp, sorted_groups
 
