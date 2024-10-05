@@ -5,7 +5,7 @@ from pathlib import Path
 
 def compile_and_test_cpp_file(cpp_file: Path, contest_data_dir: str) -> str:
     exe_file = cpp_file.with_suffix(".exe")
-    compile_command = f'clang++ -O3 "{cpp_file}" -o "{exe_file}"'
+    compile_command = f'g++ -O3 "{cpp_file}" -o "{exe_file}"'
     try:
         _ = subprocess.run(
             compile_command, shell=True, check=True, stderr=subprocess.DEVNULL
