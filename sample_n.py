@@ -9,5 +9,6 @@ llm = LLM(model=model, max_model_len=8192, swap_space=32)
 outputs = llm.generate(prompts, sampling_params)
 for output in outputs:
     prompt = output.prompt
-    generated_text = output.outputs[0].text
-    print(f"Prompt: {prompt}, Generated text: {generated_text}")
+    for o in output.outputs:
+        generated_text = o.text
+        print(f"Prompt: {prompt}, Generated text: {generated_text}")
