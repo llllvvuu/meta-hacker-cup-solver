@@ -11,4 +11,5 @@ for output in outputs:
     prompt = output.prompt
     for o in output.outputs:
         generated_text = o.text
-        print(f"Prompt: {prompt}, Generated text: {generated_text}")
+        print('=' * 80)
+        print(generated_text)
