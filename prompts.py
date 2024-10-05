@@ -1,6 +1,6 @@
 import argparse
 
-from templates import ONE_SHOT_OBSERVATIONS_FIXED
+from templates import TWO_SHOT_OBSERVATIONS_FIXED
 
 
 def interpolate_sample_in_out(statement: str, sample_in: str, sample_out: str) -> str:
@@ -58,6 +58,6 @@ if __name__ == "__main__":
     with open(args.sample_output_file, "r") as f:
         sample_output = f.read()
 
-    prompt = basic_prompt(ONE_SHOT_OBSERVATIONS_FIXED, statement, sample_input, sample_output)
+    prompt = basic_prompt(TWO_SHOT_OBSERVATIONS_FIXED, statement, sample_input, sample_output)
 
     print(prompt)
