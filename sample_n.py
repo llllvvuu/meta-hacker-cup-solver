@@ -5,7 +5,7 @@ n = int(sys.argv[1]) if len(sys.argv) > 1 else 10
 model = sys.argv[2] if len(sys.argv) > 2 else "Qwen/Qwen2.5-Coder-7B"
 prompt = sys.stdin.read()
 prompts = [prompt for _ in range(n)]
-sampling_params = SamplingParams()
+sampling_params = SamplingParams(max_tokens=1024)
 llm = LLM(model=model)
 outputs = llm.generate(prompts, sampling_params)
 for output in outputs:
