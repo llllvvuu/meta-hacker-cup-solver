@@ -633,4 +633,63 @@ Now, consider removing one element from the \(2*N\) sorted numbers. There are th
 With \(3\) candidates for \(K\), we'll pick the smallest that works. To check if a \(K\) works, we can use two pointers \(l\) and \(r\) moving from the outside inwards on the sorted input array. If the left and right values sum less than \(K\), we record a "skip" (noting the element that would've been removed) and increment \(l\). If it sums more, we decrement \(r\), else we advance both closer. In the end, \(K\) works if there is at most a single skip (and that removed element is positive).
 
 Running two pointers to check one candidate \(K\) takes \(\mathcal{O}(N)\) time, so the overall running time on \(3\) candidates is still \(\mathcal{O}(N)\).
+
+# Implementation
+```cpp
+#include <algorithm>
+#include <iostream>
+#include <vector>
+using namespace std;
+
+const int INF = (int)2e9 + 5;
+
+int N, sz;
+vector<int> a;
+
+int try_sum(int sum) {
+  int skipped = 0;
+  int l = 0, r = sz - 1;
+  int res = sum / 2;
+  while (l <= r) {
+    if (a[l] + a[r] == sum) {
+      l++;
+      r--;
+      continue;
+    }
+    skipped++;
+    if (a[l] + a[r] < sum) {
+      res = sum - a[l++];
+    } else {
+      res = sum - a[r--];
+    }
+  }
+  return (skipped <= 1 && res > 0) ? res : INF;
+}
+
+int solve() {
+  cin >> N;
+  sz = 2*N - 1;
+  a.resize(sz);
+  for (int i = 0; i < sz; i++) {
+    cin >> a[i];
+  }
+  if (N == 1) return 1;
+  sort(a.begin(), a.end());
+  int ans = min({
+    try_sum(a[1] + a[sz - 1]), // remove first
+    try_sum(a[0] + a[sz - 1]), // remove middle
+    try_sum(a[0] + a[sz - 2])  // remove last
+  });
+  return ans == INF ? -1 : ans;
+}
+
+int main() {
+  int T;
+  cin >> T;
+  for (int t = 1; t <= T; t++) {
+    cout << "Case #" << t << ": " << solve() << endl;
+  }
+  return 0;
+}
+```
 </problem>"""
