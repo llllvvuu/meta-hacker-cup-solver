@@ -481,6 +481,30 @@ The second case is depicted below. One possible guaranteed winning strategy is i
 
 # Solution
 
+<paraphrasing>
+- R rows and C columns in a grid
+- Alice and Bob start at (1,1) and need to reach (R,C)
+- Alice moves 1 to A units down, Bob moves 1 to B units right
+- Players take turns, Alice goes first
+- Can't move out of grid, lose turn if already at edge
+- Winner is the one who reaches (R,C)
+- Alice wins if she has a guaranteed winning strategy
+</paraphrasing>
+<paraphrased>
+Alice and Bob play a turn-based game on an R x C grid. Starting at (1,1), they aim to reach (R,C). Alice moves 1-A units down, Bob moves 1-B units right. They alternate turns, with Alice going first. Players can't move beyond the grid; reaching the edge means losing that turn. The winner is whoever makes the final move to (R,C). We need to determine if Alice has a guaranteed winning strategy.
+</paraphrased>
+<constraint_analysis>
+\(2 \leq R, C \leq 10^9\): must be sublinear or constant in \(R\) and \(C\)
+</constraint_analysis>
+<observations>
+<observation>If a player reaches the edge first, they can't make any more moves. So, they will lose.</observation>
+<observation>To avoid losing, each player should try to reach the edge as late as possible.</observation>
+<observation>Optimal play is to move only one unit at a time.</observation>
+<observation>A and B are irrelevant.</observation>
+<observation>The player who reaches the edge the latest is the player with more spaces to move. This depends on comparing R and C.</observation>
+<observation>If R = C, then the first player, that is Alice, loses.</observation>
+<observation>Hence, Alice wins iff R > C.</observation>
+</observations>
 <tags>
 <tag>game theory</tag>
 <tag>greedy</tag>
@@ -607,6 +631,9 @@ Please note, as demonstrated in the seventh case, that it's possible for the ans
 <paraphrased>
 Steve aims to eat two apples daily for N days, ensuring the total weight of apples eaten each day is consistent. He currently has 2N-1 apples and needs to purchase one more. The challenge is to determine the lightest possible apple (in whole ounces) he can buy to achieve his goal, or if it's impossible to do so.
 </paraphrased>
+<constraint_analysis>
+The sum of \(N\) over all cases is at most \(600{,}000\): Up to O(N log N) is acceptable. Must be less than O(N ^ 2).
+</constraint_analysis>
 <observations>
 <observation>If N=1, any positive integer weight will work, so the answer is always 1.</observation>
 <observation>If we sort the array of apple weights, and insert one more apple, then the daily sum is the sum of the first and last apples, or equivalently the sum of the second and second last apples.</observation>
