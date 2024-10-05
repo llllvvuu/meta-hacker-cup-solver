@@ -33,7 +33,7 @@ def compare_outputs(output1: str, output2: str) -> bool:
 def run_cpp_solution(exe_file: Path, input_file: Path) -> str:
     try:
         result = subprocess.run(
-            f'"{exe_file}"',
+            exe_file,
             input=input_file.read_text(),
             capture_output=True,
             text=True,
