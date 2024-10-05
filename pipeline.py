@@ -1,7 +1,6 @@
 import os
 import re
 import argparse
-from vllm import LLM, SamplingParams
 from prompts import basic_prompt
 from templates import TWO_SHOT_OBSERVATIONS_FIXED
 
@@ -37,6 +36,7 @@ def generate_prompts(
 def sample_completions(
     prompts: list[tuple[str, str]], n: int, model: str, max_tokens: int
 ) -> dict[str, list[str]]:
+    from vllm import LLM, SamplingParams
     sampling_params = SamplingParams(max_tokens=max_tokens, n=n, stop="</problem>")
     llm = LLM(model=model, max_model_len=8192, swap_space=32)
 
