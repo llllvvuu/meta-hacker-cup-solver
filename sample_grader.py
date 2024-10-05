@@ -1,6 +1,32 @@
 import subprocess
 import argparse
 from pathlib import Path
+import math
+
+
+def is_close(a: str, b: str, rel_tol=1e-6, abs_tol=1e-6) -> bool:
+    try:
+        float_a, float_b = float(a), float(b)
+        return math.isclose(float_a, float_b, rel_tol=rel_tol, abs_tol=abs_tol)
+    except ValueError:
+        return a == b
+
+
+def compare_outputs(expected_output: str, actual_output: str) -> bool:
+    expected_words = expected_output.split()
+    actual_words = actual_output.split()
+
+    if len(expected_words) != len(actual_words):
+        return False
+
+    for expected_word, actual_word in zip(expected_words, actual_words):
+        if "." in expected_word or "." in actual_word:
+            if not is_close(expected_word, actual_word):
+                return False
+        elif expected_word != actual_word:
+            return False
+
+    return True
 
 
 def compile_and_test_cpp_file(cpp_file: Path, contest_data_dir: str) -> str:
@@ -28,12 +54,13 @@ def compile_and_test_cpp_file(cpp_file: Path, contest_data_dir: str) -> str:
                 check=True,
                 timeout=5,
             )
-        diff_result = subprocess.run(
-            ["diff", expected_output_file, actual_output_file],
-            capture_output=True,
-            text=True,
-        )
-        return "PASS" if diff_result.returncode == 0 else "FAIL"
+
+        with open(expected_output_file, "r") as f:
+            expected_output = f.read()
+        with open(actual_output_file, "r") as f:
+            actual_output = f.read()
+
+        return "PASS" if compare_outputs(expected_output, actual_output) else "FAIL"
     except subprocess.TimeoutExpired:
         return "TIME"
     except Exception:
