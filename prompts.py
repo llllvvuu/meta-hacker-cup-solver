@@ -30,7 +30,13 @@ def basic_prompt(
     sample_in: str,
     sample_out: str,
 ) -> str:
-    return f"{few_shot_examples}\n<problem>\n{interpolate_sample_in_out(statement, sample_in, sample_out)}\n# Solution\n"
+    return f"""{few_shot_examples}
+<problem>
+{interpolate_sample_in_out(statement, sample_in, sample_out)}
+# Solution
+
+<tags>
+"""
 
 
 if __name__ == "__main__":
