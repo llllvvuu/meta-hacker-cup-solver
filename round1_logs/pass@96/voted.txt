@@ -1,0 +1,11 @@
+Voting results:
+Group 1: Subsonic Subway_51.cpp
+
+Winner: Subsonic Subway_51.cpp
+
+Voting results:
+Group 1: Prime Subtractorization_43.cpp
+Group 2: Prime Subtractorization_5.cpp
+Group 3: Prime Subtractorization_94.cpp
+
+Winner: Prime Subtractorization_43.cpp

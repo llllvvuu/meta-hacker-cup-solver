@@ -5,6 +5,28 @@ from prompts import basic_prompt
 from templates import TWO_SHOT_OBSERVATIONS_FIXED
 
 
+PREAMBLE = """
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <deque>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <list>
+#include <map>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <string>
+#include <utility>
+#include <vector>
+"""
+
+
 def get_problem_dirs(contest_data_dir: str) -> list[str]:
     return [
         d
@@ -34,18 +56,31 @@ def generate_prompts(
 
 
 def sample_completions(
-    prompts: list[tuple[str, str]], n: int, model: str, max_tokens: int
+    prompts: list[tuple[str, str]],
+    n: int,
+    model: str,
+    max_tokens: int,
+    num_batches: int = 2,
 ) -> dict[str, list[str]]:
     from vllm import LLM, SamplingParams
-    sampling_params = SamplingParams(max_tokens=max_tokens, n=n, stop="</problem>")
-    llm = LLM(model=model, max_model_len=8192, swap_space=32, gpu_memory_utilization=0.95)
+
+    llm = LLM(
+        model=model, max_model_len=6144, swap_space=64, gpu_memory_utilization=0.95
+    )
 
     prompt_texts = [prompt for _, prompt in prompts]
-    outputs = llm.generate(prompt_texts, sampling_params)
+    completions: dict[str, list[str]] = {problem_dir: [] for problem_dir, _ in prompts}
 
-    completions: dict[str, list[str]] = {}
-    for (problem_dir, _), output in zip(prompts, outputs):
-        completions[problem_dir] = [o.text for o in output.outputs]
+    for i in range(num_batches):
+        sampling_params = SamplingParams(
+            max_tokens=max_tokens,
+            n=n,
+            stop="</problem>",
+            seed=31337 + i,
+        )
+        outputs = llm.generate(prompt_texts, sampling_params)
+        for (problem_dir, _), output in zip(prompts, outputs):
+            completions[problem_dir].extend([o.text for o in output.outputs])
 
     return completions
 
@@ -71,7 +106,7 @@ def save_results(completions: dict[str, list[str]], output_dir: str):
                 with open(
                     os.path.join(output_dir, f"{problem_name}_{i}.cpp"), "w"
                 ) as f:
-                    _ = f.write(cpp_code)
+                    _ = f.write(PREAMBLE + cpp_code)
 
 
 def main(args) -> None:
@@ -82,9 +117,13 @@ def main(args) -> None:
     print("Generated prompts for all problems")
 
     completions = sample_completions(
-        prompts, args.num_samples, args.model, args.max_tokens
+        prompts,
+        args.num_samples,
+        args.model,
+        args.max_tokens,
+        args.num_batches,
     )
-    print(f"Generated {args.num_samples} completions for each problem")
+    print(f"Generated {args.num_batches * args.num_samples} completions for each problem")
 
     save_results(completions, args.output_dir)
     print(f"Saved results to {args.output_dir}")
@@ -99,13 +138,19 @@ if __name__ == "__main__":
         "--num_samples",
         type=int,
         default=32,
-        help="Number of completions to generate per problem",
+        help="Number of completions to generate per problem per batch",
+    )
+    _ = parser.add_argument(
+        "--num-batches",
+        type=int,
+        default=2,
+        help="Number of batches to run for generation",
     )
     _ = parser.add_argument(
         "-m",
         "--model",
         type=str,
-        default="Qwen/Qwen2.5-14B",
+        default="Qwen/Qwen2.5-14B-Instruct",
         help="Model to use for generation",
     )
     _ = parser.add_argument(
