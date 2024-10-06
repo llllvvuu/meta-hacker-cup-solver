@@ -3,6 +3,9 @@ from pathlib import Path
 import subprocess
 import random
 import math
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
+import time
 
 
 def is_close(a: str, b: str, rel_tol: float = 1e-6, abs_tol: float = 1e-6) -> bool:
@@ -30,7 +33,7 @@ def compare_outputs(output1: str, output2: str) -> bool:
     return True
 
 
-def run_cpp_solution(exe_file: Path, input_file: Path) -> str:
+def run_cpp_solution(exe_file: Path, input_file: Path) -> tuple[Path, str]:
     try:
         result = subprocess.run(
             exe_file,
@@ -40,31 +43,55 @@ def run_cpp_solution(exe_file: Path, input_file: Path) -> str:
             check=True,
             timeout=30,
         )
-        return result.stdout.strip()
+        return exe_file, result.stdout.strip()
     except subprocess.TimeoutExpired:
-        return "TIMEOUT"
-    except Exception:
-        return "ERROR"
+        return exe_file, "TIMEOUT"
+    except Exception as e:
+        print(e)
+        return exe_file, "ERROR"
 
 
 def vote_on_solutions(
-    full_input: Path, pass_file: Path, problem_name: str
+    full_input: Path, pass_file: Path, problem_name: str, num_threads: int
 ) -> tuple[str, Path, list[tuple[str, list[Path]]]]:
-    passing_solutions = [
-        Path(line.strip())
-        for line in pass_file.read_text().splitlines()
-        if problem_name in line
-    ]
+    passing_solutions = sorted(
+        [
+            Path(line.strip())
+            for line in pass_file.read_text().splitlines()
+            if problem_name in line
+        ]
+    )
 
     if not passing_solutions:
         raise ValueError(f"No passing solutions found for problem: {problem_name}")
 
     outputs: dict[Path, str] = {}
-    for cpp_file in passing_solutions:
-        exe_file = cpp_file.with_suffix(".exe")
-        output = run_cpp_solution(exe_file, full_input)
-        if output not in ["TIMEOUT", "ERROR"]:
-            outputs[cpp_file] = output
+    total_solutions = len(passing_solutions)
+
+    print(f"Running {total_solutions} solutions for problem: {problem_name}")
+    start_time = time.time()
+
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        future_to_cpp = {
+            executor.submit(
+                run_cpp_solution, cpp_file.with_suffix(".exe"), full_input
+            ): cpp_file
+            for cpp_file in passing_solutions
+        }
+        for i, future in enumerate(as_completed(future_to_cpp), 1):
+            cpp_file = future_to_cpp[future]
+            exe_file, output = future.result()
+            if output not in ["TIMEOUT", "ERROR"]:
+                outputs[cpp_file] = output
+
+            elapsed_time = time.time() - start_time
+            print(
+                f"\rProgress: {i}/{total_solutions} solutions processed. Elapsed time: {elapsed_time:.2f}s",
+                end="",
+                flush=True,
+            )
+
+    print("\nAll solutions processed.")
 
     if not outputs:
         raise ValueError("All solutions resulted in timeout or error")
@@ -78,36 +105,43 @@ def vote_on_solutions(
         else:
             clusters.append([cpp])
 
-    clusters.sort(key=len, reverse=True)
+    clusters.sort(key=lambda x: (-len(x), x[0].name))
 
     winning_cluster = clusters[0]
-    winning_cpp = random.choice(winning_cluster)
+    winning_cpp = winning_cluster[0]
     winning_output = outputs[winning_cpp]
 
-    sorted_groups = [(outputs[cluster[0]], cluster) for cluster in clusters]
+    sorted_groups = [
+        (outputs[cluster[0]], sorted(cluster, key=lambda x: x.name))
+        for cluster in clusters
+    ]
 
     return winning_output, winning_cpp, sorted_groups
 
 
 def main(args) -> None:
+    random.seed(42)
     full_input = Path(args.full_input)
     pass_file = Path(args.pass_file)
     problem_name = str(args.problem_name)
     voted_output = Path(args.voted_output)
+    num_threads = args.jobs if args.jobs > 0 else os.cpu_count() or 1
+
+    print(f"Using {num_threads} threads for parallel execution.")
 
     try:
         winning_output, winning_cpp, groups = vote_on_solutions(
-            full_input, pass_file, problem_name
+            full_input, pass_file, problem_name, num_threads
         )
 
-        # Print out the agreeing groups
+        print("\nVoting results:")
         for i, (_, cpp_files) in enumerate(groups, 1):
             cpp_names = ", ".join(cpp.name for cpp in cpp_files)
             print(f"Group {i}: {cpp_names}")
 
         print(f"\nWinner: {winning_cpp.name}")
 
-        _ = voted_output.write_text(winning_output)
+        voted_output.write_text(winning_output)
         print(f"Output written to: {voted_output}")
     except ValueError as e:
         print(f"Error: {e}")
@@ -117,15 +151,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Vote on C++ solutions for programming contest problems."
     )
-    _ = parser.add_argument("full_input", type=str, help="Path to the full input file")
-    _ = parser.add_argument(
+    parser.add_argument("full_input", type=str, help="Path to the full input file")
+    parser.add_argument(
         "pass_file", type=str, help="Path to the file containing passing solution paths"
     )
-    _ = parser.add_argument(
-        "problem_name", type=str, help="Name of the problem to vote on"
-    )
-    _ = parser.add_argument(
-        "voted_output", type=str, help="Path to write the voted output"
+    parser.add_argument("problem_name", type=str, help="Name of the problem to vote on")
+    parser.add_argument("voted_output", type=str, help="Path to write the voted output")
+    parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=0,
+        help="Number of parallel jobs to run (default: number of CPUs)",
     )
 
     args = parser.parse_args()
