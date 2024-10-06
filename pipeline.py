@@ -1,8 +1,7 @@
 import os
 import re
 import argparse
-from prompts import basic_prompt
-from templates import TWO_SHOT_OBSERVATIONS_FIXED
+import prompts as gen_prompts
 
 
 PREAMBLE = """
@@ -33,26 +32,6 @@ def get_problem_dirs(contest_data_dir: str) -> list[str]:
         for d in os.listdir(contest_data_dir)
         if os.path.isdir(os.path.join(contest_data_dir, d))
     ]
-
-
-def generate_prompts(
-    contest_data_dir: str, problem_dirs: list[str]
-) -> list[tuple[str, str]]:
-    prompts: list[tuple[str, str]] = []
-    for problem_dir in problem_dirs:
-        full_problem_dir = os.path.join(contest_data_dir, problem_dir)
-        with open(os.path.join(full_problem_dir, "statement.txt"), "r") as f:
-            statement = f.read()
-        with open(os.path.join(full_problem_dir, "sample_in.txt"), "r") as f:
-            sample_input = f.read()
-        with open(os.path.join(full_problem_dir, "sample_out.txt"), "r") as f:
-            sample_output = f.read()
-
-        prompt = basic_prompt(
-            TWO_SHOT_OBSERVATIONS_FIXED, statement, sample_input, sample_output
-        )
-        prompts.append((problem_dir, prompt))
-    return prompts
 
 
 def sample_completions(
@@ -113,7 +92,7 @@ def main(args) -> None:
     problem_dirs = get_problem_dirs(args.contest_data_dir)
     print(f"Found {len(problem_dirs)} problems")
 
-    prompts = generate_prompts(args.contest_data_dir, problem_dirs)
+    prompts = gen_prompts.generate_basic_prompts(args.contest_data_dir, problem_dirs)
     print("Generated prompts for all problems")
 
     completions = sample_completions(
@@ -123,7 +102,9 @@ def main(args) -> None:
         args.max_tokens,
         args.num_batches,
     )
-    print(f"Generated {args.num_batches * args.num_samples} completions for each problem")
+    print(
+        f"Generated {args.num_batches * args.num_samples} completions for each problem"
+    )
 
     save_results(completions, args.output_dir)
     print(f"Saved results to {args.output_dir}")

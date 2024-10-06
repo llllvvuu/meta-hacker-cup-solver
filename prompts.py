@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from templates import TWO_SHOT_OBSERVATIONS_FIXED
 
@@ -34,9 +35,58 @@ def basic_prompt(
 <problem>
 {interpolate_sample_in_out(statement, sample_in, sample_out)}
 # Solution
+"""
+
+
+def generate_basic_prompts(
+    contest_data_dir: str, problem_dirs: list[str]
+) -> list[tuple[str, str]]:
+    prompts: list[tuple[str, str]] = []
+    for problem_dir in problem_dirs:
+        full_problem_dir = os.path.join(contest_data_dir, problem_dir)
+        with open(os.path.join(full_problem_dir, "statement.txt"), "r") as f:
+            statement = f.read()
+        with open(os.path.join(full_problem_dir, "sample_in.txt"), "r") as f:
+            sample_input = f.read()
+        with open(os.path.join(full_problem_dir, "sample_out.txt"), "r") as f:
+            sample_output = f.read()
+
+        prompt = basic_prompt(TWO_SHOT_FIXED, statement, sample_input, sample_output)
+        prompts.append((problem_dir, prompt))
+    return prompts
+
+
+def scaffolded_prompt(
+    few_shot_examples: str,
+    statement: str,
+    sample_in: str,
+    sample_out: str,
+) -> str:
+    return f"""{few_shot_examples}
+<problem>
+{interpolate_sample_in_out(statement, sample_in, sample_out)}
+# Solution
 
 <paraphrasing>
 """
+
+
+def generate_scaffolded_prompts(
+    contest_data_dir: str, problem_dirs: list[str]
+) -> list[tuple[str, str]]:
+    prompts: list[tuple[str, str]] = []
+    for problem_dir in problem_dirs:
+        full_problem_dir = os.path.join(contest_data_dir, problem_dir)
+        with open(os.path.join(full_problem_dir, "statement.txt"), "r") as f:
+            statement = f.read()
+        with open(os.path.join(full_problem_dir, "sample_in.txt"), "r") as f:
+            sample_input = f.read()
+        with open(os.path.join(full_problem_dir, "sample_out.txt"), "r") as f:
+            sample_output = f.read()
+
+        prompt = basic_prompt(TWO_SHOT_FIXED, statement, sample_input, sample_output)
+        prompts.append((problem_dir, prompt))
+    return prompts
 
 
 if __name__ == "__main__":
@@ -58,6 +108,8 @@ if __name__ == "__main__":
     with open(args.sample_output_file, "r") as f:
         sample_output = f.read()
 
-    prompt = basic_prompt(TWO_SHOT_OBSERVATIONS_FIXED, statement, sample_input, sample_output)
+    prompt = basic_prompt(
+        TWO_SHOT_OBSERVATIONS_FIXED, statement, sample_input, sample_output
+    )
 
     print(prompt)
