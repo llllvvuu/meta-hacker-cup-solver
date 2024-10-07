@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from templates import TWO_SHOT_OBSERVATIONS_FIXED
+from templates import TWO_SHOT_FIXED, TWO_SHOT_OBSERVATIONS_FIXED
 
 
 def interpolate_sample_in_out(statement: str, sample_in: str, sample_out: str) -> str:
