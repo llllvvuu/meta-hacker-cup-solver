@@ -51,10 +51,9 @@ def compile_and_test_cpp_file(
     try:
         with open(input_file, "r") as infile, open(actual_output_file, "w") as outfile:
             _ = subprocess.run(
-                f'"{exe_file}"',
+                exe_file,
                 stdin=infile,
                 stdout=outfile,
-                shell=True,
                 check=True,
                 timeout=5,
             )

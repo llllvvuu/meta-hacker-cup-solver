@@ -39,7 +39,7 @@ def generate_prompts(
     contest_data_dir: str, problem_dirs: list[str]
 ) -> list[tuple[str, str]]:
     prompts: list[tuple[str, str]] = []
-    for problem_dir in problem_dirs:
+    for problem_dir in sorted(problem_dirs):
         full_problem_dir = os.path.join(contest_data_dir, problem_dir)
         with open(os.path.join(full_problem_dir, "statement.txt"), "r") as f:
             statement = f.read()
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     _ = parser.add_argument(
         "--num-batches",
         type=int,
-        default=2,
+        default=3,
         help="Number of batches to run for generation",
     )
     _ = parser.add_argument(
