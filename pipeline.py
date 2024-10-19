@@ -150,7 +150,7 @@ if __name__ == "__main__":
         "-m",
         "--model",
         type=str,
-        default="Qwen/Qwen2.5-14B-Instruct",
+        default="Qwen/Qwen2-Math-7B-Instruct",
         help="Model to use for generation",
     )
     _ = parser.add_argument(

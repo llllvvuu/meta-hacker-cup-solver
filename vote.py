@@ -6,6 +6,7 @@ import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 import time
+import shutil
 
 
 def is_close(a: str, b: str, rel_tol: float = 1e-6, abs_tol: float = 1e-6) -> bool:
@@ -52,23 +53,12 @@ def run_cpp_solution(exe_file: Path, input_file: Path) -> tuple[Path, str]:
 
 
 def vote_on_solutions(
-    full_input: Path, pass_file: Path, problem_name: str, num_threads: int
+    full_input: Path, passing_solutions: list[Path], num_threads: int
 ) -> tuple[str, Path, list[tuple[str, list[Path]]]]:
-    passing_solutions = sorted(
-        [
-            Path(line.strip())
-            for line in pass_file.read_text().splitlines()
-            if problem_name in line
-        ]
-    )
-
-    if not passing_solutions:
-        raise ValueError(f"No passing solutions found for problem: {problem_name}")
-
     outputs: dict[Path, str] = {}
     total_solutions = len(passing_solutions)
 
-    print(f"Running {total_solutions} solutions for problem: {problem_name}")
+    print(f"Running {total_solutions} solutions")
     start_time = time.time()
 
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
@@ -119,19 +109,20 @@ def vote_on_solutions(
     return winning_output, winning_cpp, sorted_groups
 
 
-def main(args) -> None:
-    random.seed(42)
-    full_input = Path(args.full_input)
-    pass_file = Path(args.pass_file)
-    problem_name = str(args.problem_name)
-    voted_output = Path(args.voted_output)
-    num_threads = args.jobs if args.jobs > 0 else os.cpu_count() or 1
+def process_problem(
+    problem_name: str,
+    contest_data_dir: Path,
+    passing_solutions: list[Path],
+    voted_output_dir: Path,
+    num_threads: int,
+) -> None:
+    full_input = contest_data_dir / problem_name / "full_in.txt"
 
-    print(f"Using {num_threads} threads for parallel execution.")
+    print(f"\nProcessing problem: {problem_name}")
 
     try:
         winning_output, winning_cpp, groups = vote_on_solutions(
-            full_input, pass_file, problem_name, num_threads
+            full_input, passing_solutions, num_threads
         )
 
         print("\nVoting results:")
@@ -141,22 +132,67 @@ def main(args) -> None:
 
         print(f"\nWinner: {winning_cpp.name}")
 
-        voted_output.write_text(winning_output)
-        print(f"Output written to: {voted_output}")
+        # Write output file
+        output_file = voted_output_dir / f"{problem_name}.out"
+        output_file.write_text(winning_output)
+        print(f"Output written to: {output_file}")
+
+        # Copy winning cpp file
+        dest_cpp_file = voted_output_dir / f"{problem_name}.cpp"
+        shutil.copy2(winning_cpp, dest_cpp_file)
+        print(f"Winning cpp file copied to: {dest_cpp_file}")
+
     except ValueError as e:
-        print(f"Error: {e}")
+        print(f"Error processing {problem_name}: {e}")
+
+
+def main(args) -> None:
+    random.seed(42)
+    contest_data_dir = Path(args.contest_data_dir)
+    pass_file = Path(args.pass_file)
+    voted_output_dir = Path(args.voted_output_dir)
+    num_threads = args.jobs if args.jobs > 0 else os.cpu_count() or 1
+
+    print(f"Using {num_threads} threads for parallel execution.")
+
+    # Create voted_output_dir if it doesn't exist
+    voted_output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Read pass_file and group solutions by problem
+    problems = {}
+    for line in pass_file.read_text().splitlines():
+        path = Path(line.strip())
+        problem_name = path.name.split("_")[0]
+        if problem_name not in problems:
+            problems[problem_name] = []
+        problems[problem_name].append(path)
+
+    # Process each problem
+    for problem_name, passing_solutions in problems.items():
+        process_problem(
+            problem_name,
+            contest_data_dir,
+            passing_solutions,
+            voted_output_dir,
+            num_threads,
+        )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Vote on C++ solutions for programming contest problems."
+        description="Vote on C++ solutions for multiple programming contest problems."
     )
-    parser.add_argument("full_input", type=str, help="Path to the full input file")
+    parser.add_argument(
+        "contest_data_dir", type=str, help="Directory containing problem input files"
+    )
     parser.add_argument(
         "pass_file", type=str, help="Path to the file containing passing solution paths"
     )
-    parser.add_argument("problem_name", type=str, help="Name of the problem to vote on")
-    parser.add_argument("voted_output", type=str, help="Path to write the voted output")
+    parser.add_argument(
+        "voted_output_dir",
+        type=str,
+        help="Directory to write the voted outputs and winning cpp files",
+    )
     parser.add_argument(
         "-j",
         "--jobs",

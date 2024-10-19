@@ -41,6 +41,8 @@ def compile_and_test_cpp_file(
             compile_command, shell=True, check=True, stderr=subprocess.DEVNULL
         )
     except subprocess.CalledProcessError:
+        pass
+    if not exe_file.exists():
         return cpp_file, "ERR"
 
     problem_name = cpp_file.stem.rsplit("_", 1)[0]
